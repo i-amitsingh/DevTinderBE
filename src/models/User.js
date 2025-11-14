@@ -70,6 +70,7 @@ userSchema.methods.verifyPassword = async function (password) {
   const isMatch = await bcrypt.compare(password, user.password);
   return isMatch;
 };
+
 // const UserModel = mongoose.model("User", userSchema);
 // module.exports = UserModel;
 
