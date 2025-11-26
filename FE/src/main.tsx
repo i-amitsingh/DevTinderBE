@@ -11,6 +11,20 @@ if (savedToken) {
   axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
 }
 
+// Ensure axios always adds Authorization header with any saved token before each request
+axios.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      (config.headers as any) = config.headers || {};
+      (config.headers as any)["Authorization"] = `Bearer ${token}`;
+    }
+  } catch (err) {
+    // ignore
+  }
+  return config;
+});
+
 createRoot(document.getElementById('root')!).render(
   <App />
 )

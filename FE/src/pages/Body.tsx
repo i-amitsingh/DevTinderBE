@@ -27,6 +27,20 @@ const Body = (): ReactElement => {
             const axiosError = error as AxiosError;
             const status = axiosError?.response?.status;
             if (status === 401) {
+                // Try to fall back to localStorage token if exists and retry once
+                const token = localStorage.getItem("token");
+                if (token) {
+                    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+                    try {
+                        const retried = await axios.get<User>(`${BASE_URL}/profile/view`, {
+                            withCredentials: true,
+                        });
+                        dispatch(addUser(retried.data));
+                        return;
+                    } catch (retryErr) {
+                        console.warn("Retry after setting token failed", retryErr);
+                    }
+                }
                 dispatch(removeUser());
                 localStorage.removeItem("token");
                 delete axios.defaults.headers.common["Authorization"];
