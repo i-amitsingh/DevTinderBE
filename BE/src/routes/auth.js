@@ -24,7 +24,15 @@ authRouter.post("/signup", async (req, res) => {
       gender,
     });
     await user.save();
-    res.status(201).send("User registered successfully!");
+    // Auto-login on signup: generate token and set cookie
+    const token = await user.getJWT();
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+      httpOnly: true,
+      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
+    });
+    return res.status(201).json({ user, token });
   } catch (error) {
     res.status(400).send("Error : " + error.message);
   }
@@ -44,11 +52,14 @@ authRouter.post("/login", async (req, res) => {
     if (isMatch) {
       // Generate JWT token
       const token = await user.getJWT();
-      // add token to cookie and send response back to user
+      // add token to cookie and send response back to user (also return user and token)
       res.cookie("token", token, {
         expires: new Date(Date.now() + 8 * 3600000),
+        httpOnly: true,
+        sameSite: "none",
+        secure: process.env.NODE_ENV === "production",
       });
-      res.status(200).send("User Loggedin successfully!");
+      return res.status(200).json({ user, token });
     }
   } catch (error) {
     res.status(500).send("Server error");
