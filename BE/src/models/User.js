@@ -43,8 +43,10 @@ const userSchema = new mongoose.Schema(
         message: "{VALUE} is not a valid gender",
       },
     },
-    photourl: {
+    photoUrl: {
       type: String,
+      default:
+        "https://imgs.search.brave.com/UJZSsRapFSBnYPuNNR_nHsrrwcK3DgGiP3xeG8E6iAQ/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wNDUv/NzExLzE4NS9zbWFs/bC9tYWxlLXByb2Zp/bGUtcGljdHVyZS1w/bGFjZWhvbGRlci1m/b3Itc29jaWFsLW1l/ZGlhLWZvcnVtLWRh/dGluZy1zaXRlLWNo/YXQtb3BlcmF0b3It/ZGVzaWduLXNvY2lh/bC1wcm9maWxlLXRl/bXBsYXRlLWRlZmF1/bHQtYXZhdGFyLWlj/b24tZmxhdC1zdHls/ZS1mcmVlLXZlY3Rv/ci5qcGc",
     },
     about: {
       type: String,
@@ -59,7 +61,7 @@ const userSchema = new mongoose.Schema(
 
 userSchema.methods.getJWT = async function () {
   const user = this;
-  const jwtSecret = process.env.JWT_SECRET || "DEV@Tinder$786";
+  const jwtSecret = process.env.JWT_SECRET;
   const token = await jwt.sign({ _id: user._id }, jwtSecret, {
     expiresIn: "7d",
   });
@@ -73,5 +75,12 @@ userSchema.methods.verifyPassword = async function (password) {
 };
 // const UserModel = mongoose.model("User", userSchema);
 // module.exports = UserModel;
+
+userSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", userSchema);

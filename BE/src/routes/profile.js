@@ -8,7 +8,9 @@ const bcrypt = require("bcrypt");
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
     const user = req.user;
-    res.send(user);
+    const userObj = user.toObject();
+    delete userObj.password;
+    return res.status(200).json({ data: userObj });
   } catch (error) {
     res.status(500).send("Server error");
   }
@@ -20,13 +22,21 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
       throw new Error("Invalid edit request");
     }
     const loggedinUser = req.user;
+    console.log(
+      "[DEBUG] profile edit called by user",
+      loggedinUser._id,
+      "payload:",
+      req.body
+    );
     Object.keys(req.body).forEach((key) => {
       loggedinUser[key] = req.body[key];
     });
     await loggedinUser.save();
+    const userObj = loggedinUser.toObject();
+    delete userObj.password;
     res.status(200).json({
       message: `${loggedinUser.firstName}, your profile has been updated successfully.`,
-      data: loggedinUser,
+      data: userObj,
     });
   } catch (error) {
     res.status(400).send("Error : " + error.message);
@@ -45,7 +55,7 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    res.status(200).json({ message: "Password updated successfully!" });
+    return res.status(200).json({ message: "Password updated successfully!" });
   } catch (error) {
     res.status(400).send("Error : " + error.message);
   }

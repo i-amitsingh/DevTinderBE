@@ -11,8 +11,8 @@ import { Eye, EyeOff } from "lucide-react";
 import type { User } from "../types/User";
 
 function Login() {
-    const [emailId, setEmailId] = useState<string>("riya@example.com");
-    const [password, setPassword] = useState<string>("Riya@123");
+    const [emailId, setEmailId] = useState<string>("amit@gmail.com");
+    const [password, setPassword] = useState<string>("Amit@123");
     const [error, setError] = useState<string>("");
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const dispatch = useDispatch<AppDispatch>();

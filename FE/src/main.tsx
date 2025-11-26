@@ -25,6 +25,24 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// Global response interceptor to handle 401 (Unauthorized) centrally
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401) {
+      // clear token fallback and redirect to login
+      localStorage.removeItem("token");
+      delete axios.defaults.headers.common["Authorization"];
+      // If running in the browser, redirect to /login
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 createRoot(document.getElementById('root')!).render(
   <App />
 )

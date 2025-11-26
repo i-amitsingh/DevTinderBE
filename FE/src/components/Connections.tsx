@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { BASE_URL } from '../utils/Constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { addConnections } from '../utils/connectionsSlice';
@@ -15,13 +15,13 @@ const Connections = () => {
     const user = useSelector((state: RootState) => state.user?.user);
     const dispatch = useDispatch<AppDispatch>();
 
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const fetchConnections = useCallback(async () => {
+        setIsLoading(true);
         try {
             const response = await axios.get(`${BASE_URL}/user/connection`, {
                 withCredentials: true,
             });
-
-            // Server sometimes returns array in response.data, sometimes wraps in response.data.data
             const data = response.data?.data ?? response.data;
             console.log('Raw connections response', response.data);
             if (!data) {
@@ -33,11 +33,16 @@ const Connections = () => {
             const error = err as AxiosError;
             console.error('Error fetching connections:', error.message ?? error);
         }
+        setIsLoading(false);
     }, [dispatch]);
 
     useEffect(() => {
         fetchConnections();
     }, [fetchConnections, requests, user]);
+
+    if (isLoading) {
+        return <p className="text-center mt-10 text-gray-500">Loading connections...</p>;
+    }
 
     if (!connections || connections.length === 0) {
         return <p className="text-center mt-10 text-gray-500">No connections found.</p>;

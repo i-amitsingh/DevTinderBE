@@ -22,7 +22,8 @@ const Body = (): ReactElement => {
             const response = await axios.get<User>(`${BASE_URL}/profile/view`, {
                 withCredentials: true,
             });
-            dispatch(addUser(response.data));
+            const data = response.data?.data ?? response.data;
+            dispatch(addUser(data));
         } catch (error) {
             const axiosError = error as AxiosError;
             const status = axiosError?.response?.status;
@@ -35,7 +36,8 @@ const Body = (): ReactElement => {
                         const retried = await axios.get<User>(`${BASE_URL}/profile/view`, {
                             withCredentials: true,
                         });
-                        dispatch(addUser(retried.data));
+                        const retryData = retried.data?.data ?? retried.data;
+                        dispatch(addUser(retryData));
                         return;
                     } catch (retryErr) {
                         console.warn("Retry after setting token failed", retryErr);

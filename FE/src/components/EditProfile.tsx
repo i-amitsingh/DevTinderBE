@@ -5,14 +5,15 @@ import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
 import { BASE_URL } from "../utils/Constants";
 import UserCard from "./UserCard";
+import type { User } from "../types/User";
 
-function EditProfile({ user }) {
-    const [firstName, setFirstName] = useState<string>(user.firstName);
-    const [lastName, setLastName] = useState<string>(user.lastName);
-    const [about, setAbout] = useState<string>(user.about);
-    const [age, setAge] = useState<number>(user.age);
-    const [gender, setGender] = useState<string>(user.gender);
-    const [photoUrl, setPhotoUrl] = useState<string>(user.photoUrl);
+function EditProfile({ user }: { user: User }) {
+    const [firstName, setFirstName] = useState<string>(user.firstName ?? "");
+    const [lastName, setLastName] = useState<string>(user.lastName ?? "");
+    const [about, setAbout] = useState<string>(user.about ?? "");
+    const [age, setAge] = useState<number>(Number(user.age ?? 0));
+    const [gender, setGender] = useState<string>(user.gender ?? "");
+    const [photoUrl, setPhotoUrl] = useState<string>(user.photoUrl ?? "");
     const [error, setError] = useState<string>("");
     const [showToast, setShowToast] = useState<boolean>(false);
     const dispatch = useDispatch();
@@ -34,7 +35,9 @@ function EditProfile({ user }) {
                 }
 
             );
-            dispatch(addUser(response.data.data));
+            const userData = response.data?.data ?? response.data;
+            console.log("[DEBUG] profile edit response:", response.data);
+            dispatch(addUser(userData));
             setShowToast(true);
             setTimeout(() => setShowToast(false), 3000);
         } catch (error) {
@@ -129,7 +132,6 @@ function EditProfile({ user }) {
 
                             <label className="label text-sm">About</label>
                             <textarea
-                                type="textarea"
                                 className="input w-full h-36"
                                 placeholder="About"
                                 value={about}
@@ -147,7 +149,7 @@ function EditProfile({ user }) {
                     </fieldset>
                 </div >
 
-                <UserCard user={{ firstName, lastName, age, gender, photoUrl, about }} showButtons={false} />
+                <UserCard user={{ _id: user._id, emailId: user.emailId, firstName, lastName, age, gender, photoUrl, about }} showButtons={false} />
             </div>
             <div className="toast toast-top toast-center">
                 {showToast && (

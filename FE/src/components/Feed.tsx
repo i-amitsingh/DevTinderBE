@@ -16,7 +16,8 @@ function Feed() {
             const response = await axios.get<User[]>(`${BASE_URL}/user/feed`, {
                 withCredentials: true,
             });
-            dispatch(addFeed(response.data));
+            const data = (response.data as any)?.data ?? response.data;
+            dispatch(addFeed(data));
         } catch (error) {
             const axiosError = error as AxiosError;
             console.error("Error fetching feed:", axiosError);
@@ -29,11 +30,13 @@ function Feed() {
 
     const handleLike = async (u: User) => {
         try {
-            await axios.post(
+            const response = await axios.post(
                 `${BASE_URL}/request/send/interested/${u._id}`,
                 {},
                 { withCredentials: true }
             );
+            console.log('Request send response status:', response.status);
+            console.log('Request send response data:', response.data);
 
             console.log("Liked:", u.firstName);
 
@@ -46,11 +49,13 @@ function Feed() {
 
     const handleDislike = async (u: User) => {
         try {
-            await axios.post(
+            const response = await axios.post(
                 `${BASE_URL}/request/send/ignore/${u._id}`,
                 {},
                 { withCredentials: true }
             );
+            console.log('Request send (ignore) response status:', response.status);
+            console.log('Request send (ignore) response data:', response.data);
 
             console.log("Disliked:", u.firstName);
 

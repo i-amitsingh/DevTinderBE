@@ -38,9 +38,24 @@ function Signup() {
 
     // Submit signup form
     const handleSignup = async (): Promise<void> => {
+        // client-side validation for quick feedback before calling the server
+        if (!formData.firstName.trim() || !formData.lastName.trim()) {
+            setError('Please provide first and last name.');
+            return;
+        }
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!emailRegex.test(formData.emailId)) {
+            setError('Please provide a valid email address.');
+            return;
+        }
+        const strongPass = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).{8,}/;
+        if (!strongPass.test(formData.password)) {
+            setError('Password must be at least 8 characters and include upper and lower case, a number and a special character.');
+            return;
+        }
         try {
             setIsLoading(true);
-            await axios.post(
+            const signupResponse = await axios.post(
                 `${BASE_URL}/signup`,
                 {
                     ...formData,
@@ -48,6 +63,21 @@ function Signup() {
                 },
                 { withCredentials: true }
             );
+
+            // If signup already returns user & token, use it and skip login step
+            const signupData = signupResponse.data;
+            if (signupData && (signupData.user || signupData.token)) {
+                const token = signupData.token;
+                const returnedUser = signupData.user ?? signupData;
+                dispatch(addUser(returnedUser));
+                if (token) {
+                    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+                    localStorage.setItem("token", token);
+                }
+                navigate("/");
+                setIsLoading(false);
+                return;
+            }
 
             // Backend currently returns a success message (string) on signup, and does not set auth cookie.
             // Automatically login the user to set the cookie and get the user object.
@@ -77,7 +107,16 @@ function Signup() {
             const axiosError = error as AxiosError;
             console.error("Signup failed:", axiosError);
             const errData = axiosError?.response?.data;
-            const errMsg = typeof errData === 'string' ? errData : JSON.stringify(errData ?? '');
+            let errMsg = "Signup failed. Please check your details and try again.";
+            if (typeof errData === 'string') {
+                errMsg = errData;
+            } else if (errData && typeof errData === 'object') {
+                // server sends { message: 'x' }
+                const msg = (errData as any).message;
+                errMsg = msg ?? JSON.stringify(errData);
+            } else if (axiosError?.message) {
+                errMsg = axiosError.message;
+            }
             setError(errMsg || "Signup failed. Please check your details and try again.");
             setIsLoading(false);
         }

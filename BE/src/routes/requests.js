@@ -12,6 +12,11 @@ requestRouter.post(
       const fromUserId = req.user._id;
       const toUserId = req.params.toUserId;
       const status = req.params.status;
+      console.log("[DEBUG] send request called", {
+        fromUserId,
+        toUserId,
+        status,
+      });
 
       // if (fromUserId == toUserId) {
       //   return res
@@ -42,6 +47,8 @@ requestRouter.post(
         ],
       });
 
+      console.log("[DEBUG] existingRequest", existingRequest);
+
       if (existingRequest) {
         return res.status(400).send("Connection request already exists.");
       }
@@ -53,14 +60,16 @@ requestRouter.post(
         status,
       });
       const data = await connectionRequest.save();
+      console.log("[DEBUG] saved connectionRequest", data);
 
-      res.status(201).json({
+      return res.status(201).json({
         message:
           req.user.firstName + " is " + status + " in " + toUser.firstName,
         data,
       });
     } catch (Error) {
-      res.status(400).send("Error : " + Error.message);
+      console.error("[ERROR] request/send error:", Error);
+      res.status(400).json({ message: Error.message });
     }
   }
 );
@@ -79,18 +88,27 @@ requestRouter.post(
         throw new Error("Invalid status type: " + status);
       }
 
+      console.log("[DEBUG] review request called", {
+        requestId,
+        status,
+        loggedinUserId: loggedinUser._id,
+      });
       const connectionRequest = await ConnectionRequest.findOne({
-        fromUserId: requestId,
+        _id: requestId,
         toUserId: loggedinUser._id,
         status: "interested",
       });
+      console.log("[DEBUG] found connectionRequest: ", connectionRequest);
       if (!connectionRequest) {
-        return res.status(404).send("Connection request not found.");
+        return res
+          .status(404)
+          .json({ message: "Connection request not found." });
       }
 
       connectionRequest.status = status;
       const data = await connectionRequest.save();
-      res.status(200).json({
+      console.log("[DEBUG] connectionRequest updated", data);
+      return res.status(200).json({
         message: "Connection request " + status + " successfully",
         data,
       });

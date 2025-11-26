@@ -32,9 +32,16 @@ authRouter.post("/signup", async (req, res) => {
       sameSite: "none",
       secure: process.env.NODE_ENV === "production",
     });
-    return res.status(201).json({ user, token });
+    const userObj = user.toObject();
+    delete userObj.password;
+    return res.status(201).json({ user: userObj, token });
   } catch (error) {
-    res.status(400).send("Error : " + error.message);
+    console.error("[AUTH] signup error:", error);
+    // Handle duplicate key error (unique email)
+    if (error && error.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    return res.status(400).json({ message: error.message });
   }
 });
 
@@ -43,11 +50,11 @@ authRouter.post("/login", async (req, res) => {
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
-      throw new Error("Invalid Credentials");
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
     const isMatch = await user.verifyPassword(password);
     if (!isMatch) {
-      throw new Error("Incorrect Password");
+      return res.status(400).json({ message: "Incorrect Password" });
     }
     if (isMatch) {
       // Generate JWT token
@@ -59,10 +66,13 @@ authRouter.post("/login", async (req, res) => {
         sameSite: "none",
         secure: process.env.NODE_ENV === "production",
       });
-      return res.status(200).json({ user, token });
+      const userObj = user.toObject();
+      delete userObj.password;
+      return res.status(200).json({ user: userObj, token });
     }
   } catch (error) {
-    res.status(500).send("Server error");
+    console.error(error);
+    return res.status(400).json({ message: error.message });
   }
 });
 
@@ -70,7 +80,7 @@ authRouter.post("/logout", async (req, res) => {
   res.cookie("token", null, {
     expires: new Date(Date.now()),
   });
-  res.send("User Logged out successfully!");
+  return res.status(200).json({ message: "User Logged out successfully!" });
 });
 
 module.exports = {

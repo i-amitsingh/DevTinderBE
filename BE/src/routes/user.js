@@ -8,11 +8,19 @@ const User = require("../models/User");
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    console.log("[DEBUG] requests/received called for user", loggedInUser._id);
     const connectionRequests = await ConnectionRequest.find({
       toUserId: loggedInUser._id,
       status: "interested",
-    }).populate("fromUserId", ["firstName", "lastName"]);
-    res.send(connectionRequests);
+    }).populate("fromUserId", [
+      "firstName",
+      "lastName",
+      "emailId",
+      "photoUrl",
+      "about",
+    ]);
+    console.log("[DEBUG] requests/received data", connectionRequests);
+    return res.status(200).json({ data: connectionRequests });
   } catch (error) {
     res.status(500).send("Server error");
   }
@@ -22,14 +30,17 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
 userRouter.get("/user/connection", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    console.log("[DEBUG] user/connection called for user", loggedInUser._id);
     const connectionRequests = await ConnectionRequest.find({
       $or: [
         { fromUserId: loggedInUser._id, status: "accepted" },
         { toUserId: loggedInUser._id, status: "accepted" },
       ],
     })
-      .populate("fromUserId", ["firstName", "lastName"])
-      .populate("toUserId", ["firstName", "lastName"]);
+      .populate("fromUserId", ["firstName", "lastName", "photoUrl", "about"])
+      .populate("toUserId", ["firstName", "lastName", "photoUrl", "about"]);
+
+    console.log("[DEBUG] user/connection raw data", connectionRequests);
 
     const data = connectionRequests.map((row) => {
       if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
@@ -37,7 +48,9 @@ userRouter.get("/user/connection", userAuth, async (req, res) => {
       }
       return row.fromUserId;
     });
-    res.send(data);
+
+    console.log("[DEBUG] user/connection processed data", data);
+    return res.status(200).json({ data });
   } catch (error) {
     res.status(500).send("Server error");
   }
@@ -46,8 +59,12 @@ userRouter.get("/user/connection", userAuth, async (req, res) => {
 userRouter.get("/user/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
-    const page = parseInt(req.query.page);
-    const limit = parseInt(req.query.limit);
+    const page = Number.isInteger(parseInt(req.query.page))
+      ? parseInt(req.query.page)
+      : 1;
+    const limit = Number.isInteger(parseInt(req.query.limit))
+      ? parseInt(req.query.limit)
+      : 30;
     const skip = (page - 1) * limit;
 
     const connectionRequests = await ConnectionRequest.find({
@@ -68,6 +85,10 @@ userRouter.get("/user/feed", userAuth, async (req, res) => {
       hideUsersFromFeed.add(req.fromUserId.toString());
       hideUsersFromFeed.add(req.toUserId.toString());
     });
+    console.log(
+      "[DEBUG] hideUsersFromFeed ids =>",
+      Array.from(hideUsersFromFeed)
+    );
 
     const users = await User.find({
       $and: [
@@ -75,11 +96,12 @@ userRouter.get("/user/feed", userAuth, async (req, res) => {
         { _id: { $ne: loggedInUser._id } },
       ],
     })
-      .select("firstName lastName age gender about skills")
+      .select("firstName lastName age gender about skills photoUrl")
       .skip(skip)
       .limit(limit);
 
-    res.send(users);
+    console.log("[DEBUG] feed users count:", users.length);
+    return res.status(200).json({ data: users });
   } catch (error) {
     res.status(400).json({
       message: error.message,
